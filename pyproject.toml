@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "maaserbot"
+version = "0.1.0"
+description = "Telegram bot for managing maaser calculations"
+authors = ["Haim"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+python-telegram-bot = "^21.9"
+sqlalchemy = "^2.0.36"
+python-dotenv = "^1.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
