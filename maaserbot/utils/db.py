@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 import logging
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import func
 
 # Load environment variables
 load_dotenv()
@@ -22,14 +23,13 @@ def get_or_create_user(db: Session, telegram_id: int, username: str = None, firs
             username=username,
             first_name=first_name,
             last_name=last_name,
-            is_admin=telegram_id == ADMIN_ID,
+            default_calc_type=CalculationType.MAASER.value,
+            currency=Currency.ILS.value,
             is_approved=telegram_id == ADMIN_ID,
-            default_calc_type=CalculationType.MAASER,
-            currency=Currency.ILS
+            is_admin=telegram_id == ADMIN_ID
         )
         db.add(user)
         db.commit()
-        db.refresh(user)
     return user
 
 def create_access_request(db: Session, telegram_id: int, username: str = None, first_name: str = None, last_name: str = None) -> AccessRequest:
@@ -122,24 +122,21 @@ def reject_access_request(db: Session, admin_id: int, request_id: int) -> bool:
         db.rollback()
         raise
 
-def add_income(db: Session, user_id: int, amount: float, calc_type: CalculationType, description: str = None) -> Income:
+def add_income(db: Session, user_id: int, amount: float, calc_type: CalculationType = None, description: str = None) -> Income:
     """Add a new income."""
-    try:
-        income = Income(
-            user_id=user_id,
-            amount=amount,
-            calc_type=calc_type,
-            description=description
-        )
-        db.add(income)
-        db.commit()
-        db.refresh(income)
-        logger.info(f"Added income for user {user_id}: {amount}")
-        return income
-    except SQLAlchemyError as e:
-        logger.error(f"Database error in add_income: {str(e)}")
-        db.rollback()
-        raise
+    if calc_type is None:
+        user = db.query(User).filter(User.id == user_id).first()
+        calc_type = user.default_calc_type
+    income = Income(
+        user_id=user_id,
+        amount=amount,
+        calc_type=calc_type.value if isinstance(calc_type, CalculationType) else calc_type,
+        description=description
+    )
+    db.add(income)
+    db.commit()
+    logger.info(f"Added income for user {user_id}: {amount}")
+    return income
 
 def add_payment(db: Session, user_id: int, amount: float) -> Payment:
     """Add a new payment."""
@@ -219,17 +216,13 @@ def get_user_history(db: Session, user_id: int, page: int = 1, items_per_page: i
 def update_user_settings(db: Session, user_id: int, default_calc_type: CalculationType = None, currency: Currency = None) -> User:
     """Update user settings."""
     user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        return None
-        
-    if default_calc_type is not None:
-        user.default_calc_type = default_calc_type
-    if currency is not None:
-        user.currency = currency
-        
-    db.commit()
-    db.refresh(user)
-    return user 
+    if user:
+        if default_calc_type is not None:
+            user.default_calc_type = default_calc_type.value
+        if currency is not None:
+            user.currency = currency.value
+        db.commit()
+    return user
 
 def delete_all_user_data(db: Session, user_id: int) -> bool:
     """Delete all data for a user."""
@@ -238,8 +231,8 @@ def delete_all_user_data(db: Session, user_id: int) -> bool:
         db.query(Payment).filter(Payment.user_id == user_id).delete()
         user = db.query(User).filter(User.id == user_id).first()
         if user:
-            user.default_calc_type = CalculationType.MAASER
-            user.currency = Currency.ILS
+            user.default_calc_type = CalculationType.MAASER.value
+            user.currency = Currency.ILS.value
         db.commit()
         logger.warning(f"Deleted all data for user {user_id}")
         return True

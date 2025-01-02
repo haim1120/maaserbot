@@ -8,7 +8,7 @@ class CalculationType(str, enum.Enum):
     MAASER = "MAASER"
     CHOMESH = "CHOMESH"
 
-class Currency(enum.Enum):
+class Currency(str, enum.Enum):
     ILS = "₪"
     USD = "$"
     EUR = "€"
@@ -36,8 +36,8 @@ class User(Base):
     username = Column(String, nullable=True)
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
-    default_calc_type = Column(String, default=CalculationType.MAASER)
-    currency = Column(String, default="ILS")
+    default_calc_type = Column(String, default=CalculationType.MAASER.value)
+    currency = Column(String, default=Currency.ILS.value)
     is_approved = Column(Boolean, default=False)
     is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -52,7 +52,7 @@ class Income(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     amount = Column(Float, nullable=False)
     description = Column(String, nullable=True)
-    calc_type = Column(String, default=CalculationType.MAASER)
+    calc_type = Column(String, default=CalculationType.MAASER.value)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", back_populates="incomes")
