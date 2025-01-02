@@ -1,3 +1,6 @@
+# Environment variables
+.env
+
 # Python
 __pycache__/
 *.py[cod]
@@ -21,9 +24,7 @@ wheels/
 *.egg
 
 # Virtual Environment
-.env
 .venv
-venv/
 ENV/
 
 # IDE
@@ -34,6 +35,7 @@ ENV/
 
 # Database
 *.db
+*.sqlite3
 
 # Logs
 logs/
@@ -41,9 +43,4 @@ logs/
 
 # OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db 
+Thumbs.db
