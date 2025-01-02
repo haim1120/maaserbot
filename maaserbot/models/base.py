@@ -11,8 +11,8 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # If using Render.com's PostgreSQL, fix the URL format
 if DATABASE_URL:
-    # Replace postgres:// with postgresql+psycopg:// for psycopg3
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
+    # Replace postgres:// with postgresql:// for psycopg2
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 else:
     # Fallback to SQLite if no DATABASE_URL is provided
     DATABASE_URL = "sqlite:///maaser.db"
