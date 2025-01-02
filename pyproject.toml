@@ -10,7 +10,8 @@ python = "^3.11"
 python-telegram-bot = {extras = ["webhooks"], version = "^21.0"}
 sqlalchemy = "^2.0.36"
 python-dotenv = "^1.0.1"
-
+httpx = "^0.28.1"
+aiohttp = "^3.9.1"
 
 [build-system]
 requires = ["poetry-core"]
