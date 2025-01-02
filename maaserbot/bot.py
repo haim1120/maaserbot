@@ -31,9 +31,13 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Log the error and send a message to the user."""
     logger.error("Exception while handling an update:", exc_info=context.error)
     
+    if isinstance(context.error, telegram.error.Conflict):
+        logger.warning("Conflict error - multiple bot instances running")
+        return
+    
     error_message = "אירעה שגיאה בעת ביצוע הפעולה. נסה שוב מאוחר יותר."
     
-    if update.effective_message:
+    if update and update.effective_message:
         if update.callback_query:
             await update.callback_query.answer()
             await update.effective_message.edit_text(
@@ -1474,8 +1478,16 @@ def main():
     
     application.add_handler(conv_handler)
     
-    # Start the Bot
-    application.run_polling()
+    # Get port from environment variable
+    port = int(os.getenv("PORT", "8080"))
+    
+    # Start the webhook
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=port,
+        webhook_url=os.getenv("WEBHOOK_URL"),
+        secret_token=os.getenv("WEBHOOK_SECRET", "your-secret-token")
+    )
 
 if __name__ == '__main__':
     main() 
