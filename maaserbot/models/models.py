@@ -9,9 +9,18 @@ class CalculationType(str, enum.Enum):
     CHOMESH = "CHOMESH"
 
 class Currency(str, enum.Enum):
-    ILS = "₪"
-    USD = "$"
-    EUR = "€"
+    ILS = "ILS"
+    USD = "USD"
+    EUR = "EUR"
+    
+    @property
+    def symbol(self) -> str:
+        symbols = {
+            "ILS": "₪",
+            "USD": "$",
+            "EUR": "€"
+        }
+        return symbols[self.value]
 
 class AccessRequest(Base):
     """Model for access requests."""

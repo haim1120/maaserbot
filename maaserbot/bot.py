@@ -460,10 +460,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with SessionLocal() as db:
             user = get_or_create_user(db, query.from_user.id)
             balance = get_user_balance(db, user.id)
+            currency = Currency(user.currency)
             
         if balance and balance['remaining'] > 0:
             keyboard = [
-                [InlineKeyboardButton(f"✅ סמן {balance['remaining']:.2f} {user.currency.value} כשולם", callback_data=f"pay_full_{balance['remaining']}")],
+                [InlineKeyboardButton(f"✅ סמן {balance['remaining']:.2f} {currency.symbol} כשולם", callback_data=f"pay_full_{balance['remaining']}")],
                 [InlineKeyboardButton("💸 תשלום חלקי", callback_data='pay_partial')],
                 [InlineKeyboardButton("חזרה לתפריט הראשי", callback_data='main_menu')]
             ]
@@ -471,7 +472,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             await query.edit_message_text(
                 f"💸 תשלום מעשרות\n\n"
-                f"📌 יתרה לתשלום: {balance['remaining']:.2f} {user.currency.value}\n\n"
+                f"📌 יתרה לתשלום: {balance['remaining']:.2f} {currency.symbol}\n\n"
                 f"בחר אפשרות:",
                 reply_markup=reply_markup
             )
@@ -493,6 +494,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 user = get_or_create_user(db, query.from_user.id)
                 payment = add_payment(db, user.id, amount)
                 balance = get_user_balance(db, user.id)
+                currency = Currency(user.currency)
                 
                 keyboard = [
                     [InlineKeyboardButton("חזרה לתפריט הראשי", callback_data='main_menu')]
@@ -501,8 +503,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
                 await query.edit_message_text(
                     f"✅ התשלום נרשם בהצלחה!\n\n"
-                    f"💸 סכום ששולם: {amount:.2f} {user.currency.value}\n"
-                    f"📌 יתרה נוכחית: {balance['remaining']:.2f} {user.currency.value}",
+                    f"💸 סכום ששולם: {amount:.2f} {currency.symbol}\n"
+                    f"📌 יתרה נוכחית: {balance['remaining']:.2f} {currency.symbol}",
                     reply_markup=reply_markup
                 )
         except (ValueError, IndexError):
@@ -529,6 +531,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with SessionLocal() as db:
             user = get_or_create_user(db, query.from_user.id)
             balance = get_user_balance(db, user.id)
+            currency = Currency(user.currency)
         
         if balance:
             keyboard = [
@@ -538,10 +541,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             await query.edit_message_text(
                 f"📊 מצב נוכחי\n\n"
-                f"💵 סך כל ההכנסות: {balance['total_income']:.2f} {user.currency.value}\n"
-                f"✨ סך הכל {user.default_calc_type.value}: {balance['total_maaser']:.2f} {user.currency.value}\n"
-                f"💸 סך הכל שולם: {balance['total_paid']:.2f} {user.currency.value}\n"
-                f"📌 יתרה לתשלום: {balance['remaining']:.2f} {user.currency.value}",
+                f"💵 סך כל ההכנסות: {balance['total_income']:.2f} {currency.symbol}\n"
+                f"✨ סך הכל {user.default_calc_type}: {balance['total_maaser']:.2f} {currency.symbol}\n"
+                f"💸 סך הכל שולם: {balance['total_paid']:.2f} {currency.symbol}\n"
+                f"📌 יתרה לתשלום: {balance['remaining']:.2f} {currency.symbol}",
                 reply_markup=reply_markup
             )
         else:
@@ -575,10 +578,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         with SessionLocal() as db:
             user = get_or_create_user(db, query.from_user.id)
+            currency = Currency(user.currency)
             await query.edit_message_text(
                 f"⚙️ הגדרות\n\n"
-                f"🔄 סוג חישוב נוכחי: {user.default_calc_type.value}\n"
-                f"💱 מטבע נוכחי: {user.currency.value}",
+                f"🔄 סוג חישוב נוכחי: {user.default_calc_type}\n"
+                f"💱 מטבע נוכחי: {currency.symbol}",
                 reply_markup=reply_markup
             )
             
@@ -1160,20 +1164,21 @@ async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE, page:
         message = f"📖 היסטוריית פעולות (פעולה {page} מתוך {total_pages})\n"
         message += "══════════════════\n\n"
         
+        currency = Currency(user.currency)
         if op_type == 'income':
             calc_amount = operation.amount * 0.1 if operation.calc_type == CalculationType.MAASER else operation.amount * 0.2
             message += "*📥 הכנסה*\n"
             message += "──────────────────\n"
             message += f"• מאריך: {operation.created_at.strftime('%d/%m/%Y')}\n"
-            message += f"• סכום: {operation.amount:.2f} {user.currency.value}\n"
-            message += f"• {operation.calc_type.value}: {calc_amount:.2f} {user.currency.value}"
+            message += f"• סכום: {operation.amount:.2f} {currency.symbol}\n"
+            message += f"• {operation.calc_type.value}: {calc_amount:.2f} {currency.symbol}"
             if operation.description:
                 message += f"\n• תיאור: {operation.description}"
         else:  # payment
             message += "*💸 תשלום*\n"
             message += "──────────────────\n"
             message += f"• מאריך: {operation.created_at.strftime('%d/%m/%Y')}\n"
-            message += f"• סכום: {operation.amount:.2f} {user.currency.value}"
+            message += f"• סכום: {operation.amount:.2f} {currency.symbol}"
         
         # Build keyboard with navigation and action buttons
         keyboard = []
