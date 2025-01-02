@@ -761,37 +761,46 @@ async def handle_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return TYPING_INCOME
 
 async def handle_income_description(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle income description input."""
     query = update.callback_query
-    await query.answer()
-    
-    message = update.message
-    if not message:
-        message = context.user_data.get('original_message')
-    
-    if not message:
-        await query.edit_message_text("❌ אירעה שגיאה. נסה שוב.")
-        return ConversationHandler.END
-    
+    if query:  # This is for skip_description
+        await query.answer()
+        description = None
+    else:  # This is for actual description text
+        description = update.message.text.strip()
+        # Delete user's message
+        await update.message.delete()
+        
     with SessionLocal() as db:
-        user = get_or_create_user(db, query.from_user.id)
+        user = get_or_create_user(db, update.effective_user.id if update.effective_user else query.from_user.id)
         amount = context.user_data.get('income_amount')
         
         if not amount:
-            await query.edit_message_text("❌ אירעה שגיאה. נסה שוב.")
+            message = "❌ אירעה שגיאה. נסה שוב."
+            if query:
+                await query.edit_message_text(message)
+            else:
+                await context.user_data['original_message'].edit_text(message)
             return ConversationHandler.END
         
-        income = add_income(db, user.id, amount)
+        # Add the income with description
+        income = add_income(db, user.id, amount, description=description)
         
         message = "✅ ההכנסה נוספה בהצלחה!\n\n"
         message += f"💰 סכום: {amount:.2f} {Currency(user.currency).symbol}\n"
         message += f"✨ {user.default_calc_type}: {amount * (0.1 if user.default_calc_type == CalculationType.MAASER.value else 0.2):.2f} {Currency(user.currency).symbol}"
+        if description:
+            message += f"\n💭 תיאור: {description}"
         
         keyboard = [
             [InlineKeyboardButton("חזרה לתפריט הראשי", callback_data='main_menu')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        await query.edit_message_text(message, reply_markup=reply_markup)
+        if query:
+            await query.edit_message_text(message, reply_markup=reply_markup)
+        else:
+            await context.user_data['original_message'].edit_text(message, reply_markup=reply_markup)
         
     return ConversationHandler.END
 
