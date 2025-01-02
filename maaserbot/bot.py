@@ -1159,15 +1159,16 @@ async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE, page:
             calc_amount = operation.amount * 0.1 if operation.calc_type == CalculationType.MAASER else operation.amount * 0.2
             message += "*📥 הכנסה*\n"
             message += "──────────────────\n"
-            message += (f"• מאריך: {operation.created_at.strftime('%d/%m/%Y')}\n"
-                      f"• סכום: {operation.amount:.2f} {user.currency.value}\n"
-                      f"• {operation.calc_type.value}: {calc_amount:.2f} {user.currency.value}"
-                      f"{f'\n• תיאור: {operation.description}' if operation.description else ''}")
+            message += f"• מאריך: {operation.created_at.strftime('%d/%m/%Y')}\n"
+            message += f"• סכום: {operation.amount:.2f} {user.currency.value}\n"
+            message += f"• {operation.calc_type.value}: {calc_amount:.2f} {user.currency.value}"
+            if operation.description:
+                message += f"\n• תיאור: {operation.description}"
         else:  # payment
             message += "*💸 תשלום*\n"
             message += "──────────────────\n"
-            message += (f"• מאריך: {operation.created_at.strftime('%d/%m/%Y')}\n"
-                      f"• סכום: {operation.amount:.2f} {user.currency.value}")
+            message += f"• מאריך: {operation.created_at.strftime('%d/%m/%Y')}\n"
+            message += f"• סכום: {operation.amount:.2f} {user.currency.value}"
         
         # Build keyboard with navigation and action buttons
         keyboard = []
