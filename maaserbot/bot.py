@@ -1340,45 +1340,56 @@ async def handle_edit_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def handle_edit_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle editing income amount."""
     try:
-        amount = float(update.message.text)
+        amount = float(update.message.text.strip())
         if amount <= 0:
             raise ValueError("Amount must be positive")
             
-        editing_item = context.user_data.get('editing_item')
-        if not editing_item or editing_item['type'] != 'income':
-            return CHOOSING
-            
-        with SessionLocal() as db:
-            user = get_or_create_user(db, update.effective_user.id)
-            income = edit_income(db, editing_item['id'], user.id, amount=amount)
-            
-            if income:
-                message = f"✅ ההכנסה עודכנה בהצלחה לסכום {amount:.2f} {user.currency.value}"
-            else:
-                message = "❌ לא נמצאה ההכנסה המבוקשת"
-                
         # Delete user's message
         await update.message.delete()
         
-        keyboard = [[InlineKeyboardButton("חזרה להיסטוריה", callback_data='history')]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await context.user_data['original_message'].edit_text(message, reply_markup=reply_markup)
+        with SessionLocal() as db:
+            user = get_or_create_user(db, update.effective_user.id)
+            income_id = context.user_data.get('editing_income_id')
+            
+            if not income_id:
+                await context.user_data['original_message'].edit_text("❌ אירעה שגיאה. נסה שוב.")
+                return CHOOSING
+            
+            income = db.query(Income).filter(Income.id == income_id, Income.user_id == user.id).first()
+            if not income:
+                await context.user_data['original_message'].edit_text("❌ ההכנסה לא נמצאה.")
+                return CHOOSING
+            
+            # Update the income amount
+            income.amount = amount
+            db.commit()
+            logger.info(f"הכנסה {income_id} עודכנה בהצלחה")
+            
+            message = f"✅ ההכנסה עודכנה בהצלחה לסכום {amount:.2f} {Currency(user.currency).symbol}"
+            keyboard = [
+                [InlineKeyboardButton("חזרה להיסטוריה", callback_data='history')],
+                [InlineKeyboardButton("חזרה לתפריט הראשי", callback_data='main_menu')]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await context.user_data['original_message'].edit_text(message, reply_markup=reply_markup)
             
     except ValueError:
         # Delete user's message
         await update.message.delete()
         
-        keyboard = [[InlineKeyboardButton("ביטול", callback_data='history')]]
+        keyboard = [
+            [InlineKeyboardButton("ביטול", callback_data='history')]
+        ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         await context.user_data['original_message'].edit_text(
             "❌ אנא הזן מספר חיובי בלבד.\n\n"
-            "✏️ עריכת הכנסה\n\n"
+            "✏️ עריכת סכום הכנסה\n\n"
             "הזן את הסכום החדש:",
             reply_markup=reply_markup
         )
-        return EDIT_INCOME
+        return EDITING_INCOME
         
     return CHOOSING
 
