@@ -781,7 +781,7 @@ async def handle_income_description(update: Update, context: ContextTypes.DEFAUL
                 await query.edit_message_text(message)
             else:
                 await context.user_data['original_message'].edit_text(message)
-            return ConversationHandler.END
+            return CHOOSING
         
         # Add the income with description
         income = add_income(db, user.id, amount, description=description)
@@ -802,7 +802,7 @@ async def handle_income_description(update: Update, context: ContextTypes.DEFAUL
         else:
             await context.user_data['original_message'].edit_text(message, reply_markup=reply_markup)
         
-    return ConversationHandler.END
+    return CHOOSING
 
 async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle payment amount input."""
