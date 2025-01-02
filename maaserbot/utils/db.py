@@ -13,26 +13,24 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))  # Default to 0 if not set
 # הגדרת לוגר
 logger = logging.getLogger(__name__)
 
-def get_or_create_user(db: Session, telegram_id: int) -> User:
+def get_or_create_user(db: Session, telegram_id: int, username: str = None, first_name: str = None, last_name: str = None) -> User:
     """Get or create a user."""
-    try:
-        user = db.query(User).filter(User.telegram_id == telegram_id).first()
-        if not user:
-            user = User(
-                telegram_id=telegram_id,
-                is_approved=telegram_id == ADMIN_ID,  # Auto-approve admin
-                calculation_type=CalculationType.GROSS,
-                currency=Currency.ILS
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-            logger.info(f"Creating new user with ID {telegram_id}")
-        return user
-    except SQLAlchemyError as e:
-        logger.error(f"Database error in get_or_create_user: {str(e)}")
-        db.rollback()
-        raise
+    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+    if not user:
+        user = User(
+            telegram_id=telegram_id,
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            is_admin=telegram_id == ADMIN_ID,
+            is_approved=telegram_id == ADMIN_ID,
+            default_calc_type=CalculationType.MAASER,
+            currency=Currency.ILS
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return user
 
 def create_access_request(db: Session, telegram_id: int, username: str = None, first_name: str = None, last_name: str = None) -> AccessRequest:
     """Create a new access request."""

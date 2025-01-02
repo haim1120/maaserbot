@@ -1479,7 +1479,7 @@ def main():
     application.add_handler(conv_handler)
     
     # Get port and webhook settings from environment variables
-    port = int(os.getenv("PORT", "8080"))
+    port = int(os.getenv("PORT", "10000"))  # Changed default port to 10000
     webhook_url = os.getenv("WEBHOOK_URL")
     webhook_secret = os.getenv("WEBHOOK_SECRET", "your-secret-token")
     
@@ -1493,6 +1493,9 @@ def main():
     
     logger.info(f"Starting webhook on port {port} with path {webhook_path}")
     
+    # Delete existing webhook before setting a new one
+    application.bot.delete_webhook()
+    
     # Start the webhook
     application.run_webhook(
         listen="0.0.0.0",
@@ -1500,6 +1503,7 @@ def main():
         webhook_url=webhook_url,
         secret_token=webhook_secret,
         url_path=webhook_path,
+        allowed_updates=["message", "callback_query"],
         drop_pending_updates=True
     )
 
