@@ -760,41 +760,40 @@ async def handle_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return TYPING_INCOME
 
-async def handle_income_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle income description input."""
+async def handle_income_description(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
+    await query.answer()
     
-    amount = context.user_data.get('income_amount')
-    if not amount:
-        return CHOOSING
-        
+    message = update.message
+    if not message:
+        message = context.user_data.get('original_message')
+    
+    if not message:
+        await query.edit_message_text("❌ אירעה שגיאה. נסה שוב.")
+        return ConversationHandler.END
+    
     with SessionLocal() as db:
-        user = get_or_create_user(db, update.effective_user.id if update.effective_user else query.from_user.id)
+        user = get_or_create_user(db, query.from_user.id)
+        amount = context.user_data.get('income_amount')
         
-        description = None
-        if query and query.data == 'skip_description':
-            await query.answer()
-        else:
-            # Delete user's message
-            await update.message.delete()
-            description = update.message.text.strip()
-            
-        # Add the income with the user's default calculation type
-        income = add_income(db, user.id, amount, user.default_calc_type, description)
+        if not amount:
+            await query.edit_message_text("❌ אירעה שגיאה. נסה שוב.")
+            return ConversationHandler.END
         
-        keyboard = [[InlineKeyboardButton("חזרה לתפריט הראשי", callback_data='main_menu')]]
+        income = add_income(db, user.id, amount)
+        
+        message = "✅ ההכנסה נוספה בהצלחה!\n\n"
+        message += f"💰 סכום: {amount:.2f} {Currency(user.currency).symbol}\n"
+        message += f"✨ {user.default_calc_type}: {amount * (0.1 if user.default_calc_type == CalculationType.MAASER.value else 0.2):.2f} {Currency(user.currency).symbol}"
+        
+        keyboard = [
+            [InlineKeyboardButton("חזרה לתפריט הראשי", callback_data='main_menu')]
+        ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        message = f"✅ נוספה הכנסה חדשה\n\n"
-        message += f"💰 סכום: {amount:.2f} {user.currency.value}\n"
-        message += f"📊 {user.default_calc_type.value}: {amount * (0.1 if user.default_calc_type == CalculationType.MAASER else 0.2):.2f} {user.currency.value}"
-        if description:
-            message += f"\n💭 תיאור: {description}"
-            
-        # Update the original message
-        await context.user_data['original_message'].edit_text(message, reply_markup=reply_markup)
+        await query.edit_message_text(message, reply_markup=reply_markup)
         
-    return CHOOSING
+    return ConversationHandler.END
 
 async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle payment amount input."""
@@ -1166,12 +1165,12 @@ async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE, page:
         
         currency = Currency(user.currency)
         if op_type == 'income':
-            calc_amount = operation.amount * 0.1 if operation.calc_type == CalculationType.MAASER else operation.amount * 0.2
+            calc_amount = operation.amount * 0.1 if operation.calc_type == CalculationType.MAASER.value else operation.amount * 0.2
             message += "*📥 הכנסה*\n"
             message += "──────────────────\n"
             message += f"• מאריך: {operation.created_at.strftime('%d/%m/%Y')}\n"
             message += f"• סכום: {operation.amount:.2f} {currency.symbol}\n"
-            message += f"• {operation.calc_type.value}: {calc_amount:.2f} {currency.symbol}"
+            message += f"• {operation.calc_type}: {calc_amount:.2f} {currency.symbol}"
             if operation.description:
                 message += f"\n• תיאור: {operation.description}"
         else:  # payment
