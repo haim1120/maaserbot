@@ -1413,8 +1413,8 @@ def main():
             CHOOSING: [
                 CallbackQueryHandler(handle_main_menu, pattern='^main_menu$'),
                 CallbackQueryHandler(request_access, pattern='^request_access$'),
-                CallbackQueryHandler(handle_edit_choice, pattern='^edit_income_(amount|desc)_\d+$'),
-                CallbackQueryHandler(handle_edit_delete_callbacks, pattern='^(edit|delete)_(income|payment)_\d+$'),
+                CallbackQueryHandler(handle_edit_choice, pattern=r'^edit_income_(amount|desc)_\d+$'),
+                CallbackQueryHandler(handle_edit_delete_callbacks, pattern=r'^(edit|delete)_(income|payment)_\d+$'),
                 CallbackQueryHandler(button),
             ],
             SELECTING_INCOME_ID: [
@@ -1428,7 +1428,7 @@ def main():
                 CallbackQueryHandler(button)
             ],
             EDIT_CHOOSING: [
-                CallbackQueryHandler(handle_edit_choice, pattern='^edit_income_(amount|desc)_\d+$'),
+                CallbackQueryHandler(handle_edit_choice, pattern=r'^edit_income_(amount|desc)_\d+$'),
                 CallbackQueryHandler(handle_main_menu, pattern='^main_menu$'),
                 CallbackQueryHandler(button)
             ],
@@ -1478,15 +1478,29 @@ def main():
     
     application.add_handler(conv_handler)
     
-    # Get port from environment variable
+    # Get port and webhook settings from environment variables
     port = int(os.getenv("PORT", "8080"))
+    webhook_url = os.getenv("WEBHOOK_URL")
+    webhook_secret = os.getenv("WEBHOOK_SECRET", "your-secret-token")
+    
+    if not webhook_url:
+        logger.error("WEBHOOK_URL environment variable is not set!")
+        return
+    
+    # Extract path from webhook URL
+    from urllib.parse import urlparse
+    webhook_path = urlparse(webhook_url).path or "/webhook"
+    
+    logger.info(f"Starting webhook on port {port} with path {webhook_path}")
     
     # Start the webhook
     application.run_webhook(
         listen="0.0.0.0",
         port=port,
-        webhook_url=os.getenv("WEBHOOK_URL"),
-        secret_token=os.getenv("WEBHOOK_SECRET", "your-secret-token")
+        webhook_url=webhook_url,
+        secret_token=webhook_secret,
+        url_path=webhook_path,
+        drop_pending_updates=True
     )
 
 if __name__ == '__main__':
