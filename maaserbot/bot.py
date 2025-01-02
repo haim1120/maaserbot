@@ -582,7 +582,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(
                 f"⚙️ הגדרות\n\n"
                 f"🔄 סוג חישוב נוכחי: {user.default_calc_type}\n"
-                f"💱 מטבע נוכחי: {currency.symbol}",
+                f"💱 מטבע נוכחי: {currency.name_hebrew} ({currency.symbol})",
                 reply_markup=reply_markup
             )
             

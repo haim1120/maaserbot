@@ -5,8 +5,8 @@ import enum
 from .base import Base
 
 class CalculationType(str, enum.Enum):
-    MAASER = "MAASER"
-    CHOMESH = "CHOMESH"
+    MAASER = "מעשר"
+    CHOMESH = "חומש"
 
 class Currency(str, enum.Enum):
     ILS = "ILS"
@@ -21,6 +21,15 @@ class Currency(str, enum.Enum):
             "EUR": "€"
         }
         return symbols[self.value]
+    
+    @property
+    def name_hebrew(self) -> str:
+        names = {
+            "ILS": "שקל",
+            "USD": "דולר",
+            "EUR": "יורו"
+        }
+        return names[self.value]
 
 class AccessRequest(Base):
     """Model for access requests."""
