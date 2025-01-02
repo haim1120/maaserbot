@@ -723,24 +723,28 @@ async def handle_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Delete user's message
         await update.message.delete()
-            
-        keyboard = [
-            [
-                InlineKeyboardButton("דלג", callback_data='skip_description'),
-                InlineKeyboardButton("ביטול", callback_data='main_menu')
-            ]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
         
-        # Update the original message instead of sending a new one
-        await context.user_data['original_message'].edit_text(
-            f"💰 הוספת הכנסה\n\n"
-            f"סכום: {amount}\n\n"
-            "💭 אפשר להוסיף תיאור להכנסה (למשל: 'משכורת', 'בונוס' וכו')\n"
-            "או ללחוץ על 'דלג' כדי להמשיך:",
-            reply_markup=reply_markup
-        )
-        return TYPING_INCOME_DESCRIPTION
+        with SessionLocal() as db:
+            user = get_or_create_user(db, update.effective_user.id)
+            currency = Currency(user.currency)
+            
+            keyboard = [
+                [
+                    InlineKeyboardButton("דלג", callback_data='skip_description'),
+                    InlineKeyboardButton("ביטול", callback_data='main_menu')
+                ]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            # Update the original message instead of sending a new one
+            await context.user_data['original_message'].edit_text(
+                f"💰 הוספת הכנסה\n\n"
+                f"סכום: {amount:.2f} {currency.symbol}\n\n"
+                "💭 אפשר להוסיף תיאור להכנסה (למשל: 'משכורת', 'בונוס' וכו')\n"
+                "או ללחוץ על 'דלג' כדי להמשיך:",
+                reply_markup=reply_markup
+            )
+            return TYPING_INCOME_DESCRIPTION
             
     except ValueError:
         # Delete user's message
@@ -818,6 +822,7 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with SessionLocal() as db:
             user = get_or_create_user(db, update.effective_user.id)
             balance = get_user_balance(db, user.id)
+            currency = Currency(user.currency)
             
             if amount > balance['remaining']:
                 keyboard = [
@@ -828,7 +833,7 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.user_data['original_message'].edit_text(
                     f"❌ לא ניתן לשלם יותר מהסכום שחייבים.\n\n"
                     f"💸 תשלום חלקי\n\n"
-                    f"היתרה לתשלום היא {balance['remaining']:.2f} {user.currency.value}\n"
+                    f"היתרה לתשלום היא {balance['remaining']:.2f} {currency.symbol}\n"
                     f"בבקשה הזן סכום קטן או שווה ליתרה:",
                     reply_markup=reply_markup
                 )
@@ -845,8 +850,8 @@ async def handle_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Update the original message
             await context.user_data['original_message'].edit_text(
                 f"✅ התשלום נרשם בהצלחה!\n\n"
-                f"💸 סכום ששולם: {amount:.2f} {user.currency.value}\n"
-                f"📌 יתרה נוכחית: {balance['remaining']:.2f} {user.currency.value}",
+                f"💸 סכום ששולם: {amount:.2f} {currency.symbol}\n"
+                f"📌 יתרה נוכחית: {balance['remaining']:.2f} {currency.symbol}",
                 reply_markup=reply_markup
             )
             
