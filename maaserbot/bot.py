@@ -1,11 +1,12 @@
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, ConversationHandler, filters
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, ConversationHandler, filters, CallbackContext
 import os
 from dotenv import load_dotenv
 from maaserbot.models import SessionLocal
 from maaserbot.utils.db import get_or_create_user, add_income, add_payment, get_user_balance, get_user_history, update_user_settings, delete_all_user_data, delete_income, edit_income, delete_payment, edit_payment, approve_user, remove_user_approval, get_all_users, get_pending_access_requests, create_access_request, approve_access_request, reject_access_request
 from maaserbot.models.models import CalculationType, Currency, Income, Payment, AccessRequest
+from telegram.error import Conflict
 
 # Load environment variables
 load_dotenv()
@@ -31,7 +32,7 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Log the error and send a message to the user."""
     logger.error("Exception while handling an update:", exc_info=context.error)
     
-    if isinstance(context.error, telegram.error.Conflict):
+    if isinstance(context.error, Conflict):
         logger.warning("Conflict error - multiple bot instances running")
         return
     
