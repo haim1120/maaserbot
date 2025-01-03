@@ -1321,7 +1321,7 @@ async def handle_edit_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
     edit_type = data[2]  # amount/desc
     item_id = int(data[3])
     
-    context.user_data['editing_item'] = {'type': 'income', 'id': item_id}
+    context.user_data['editing_income_id'] = item_id  # Changed from editing_item to editing_income_id
     context.user_data['original_message'] = query.message
     
     keyboard = [[InlineKeyboardButton("ביטול", callback_data='history')]]
@@ -1329,14 +1329,14 @@ async def handle_edit_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     if edit_type == 'amount':
         await query.edit_message_text(
-            "✏️ עריכת הכנסה\n\n"
+            "✏️ עריכת סכום הכנסה\n\n"
             "הזן את הסכום החדש:",
             reply_markup=reply_markup
         )
         return EDIT_INCOME
     else:  # desc
         await query.edit_message_text(
-            "✏️ עריכת הכנסה\n\n"
+            "✏️ עריכת תיאור הכנסה\n\n"
             "הזן את התיאור החדש:",
             reply_markup=reply_markup
         )
@@ -1394,34 +1394,44 @@ async def handle_edit_income(update: Update, context: ContextTypes.DEFAULT_TYPE)
             "הזן את הסכום החדש:",
             reply_markup=reply_markup
         )
-        return EDITING_INCOME
+        return EDIT_INCOME
         
     return CHOOSING
 
 async def handle_edit_income_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle editing income description."""
-    description = update.message.text
+    description = update.message.text.strip()
     
-    editing_item = context.user_data.get('editing_item')
-    if not editing_item or editing_item['type'] != 'income':
-        return CHOOSING
-        
-    with SessionLocal() as db:
-        user = get_or_create_user(db, update.effective_user.id)
-        income = edit_income(db, editing_item['id'], user.id, description=description)
-        
-        if income:
-            message = f"✅ תיאור ההכנסה עודכן בהצלחה"
-        else:
-            message = "❌ לא נמצאה ההכנסה המבוקשת"
-            
     # Delete user's message
     await update.message.delete()
     
-    keyboard = [[InlineKeyboardButton("חזרה להיסטוריה", callback_data='history')]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await context.user_data['original_message'].edit_text(message, reply_markup=reply_markup)
+    with SessionLocal() as db:
+        user = get_or_create_user(db, update.effective_user.id)
+        income_id = context.user_data.get('editing_income_id')
+        
+        if not income_id:
+            await context.user_data['original_message'].edit_text("❌ אירעה שגיאה. נסה שוב.")
+            return CHOOSING
+        
+        income = db.query(Income).filter(Income.id == income_id, Income.user_id == user.id).first()
+        if not income:
+            await context.user_data['original_message'].edit_text("❌ ההכנסה לא נמצאה.")
+            return CHOOSING
+        
+        # Update the income description
+        income.description = description
+        db.commit()
+        logger.info(f"תיאור הכנסה {income_id} עודכן בהצלחה")
+        
+        message = "✅ תיאור ההכנסה עודכן בהצלחה"
+        keyboard = [
+            [InlineKeyboardButton("חזרה להיסטוריה", callback_data='history')],
+            [InlineKeyboardButton("חזרה לתפריט הראשי", callback_data='main_menu')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await context.user_data['original_message'].edit_text(message, reply_markup=reply_markup)
+        
     return CHOOSING
 
 def main():
