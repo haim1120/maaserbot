@@ -230,11 +230,11 @@ async def show_pending_requests(update: Update, context: ContextTypes.DEFAULT_TY
             )
             return CHOOSING
         
-        message = "📝 *בקשות ממתינות לאישור:*\n\n"
+        message = "📝 <b>בקשות ממתינות לאישור:</b>\n\n"
         
         for request in pending_requests:
-            message += "👤 *משתמש חדש*\n"
-            message += f"• מזהה: `{request.telegram_id}`\n"
+            message += "👤 <b>משתמש חדש</b>\n"
+            message += f"• מזהה: <code>{request.telegram_id}</code>\n"
             if request.username:
                 message += f"• שם משתמש: @{request.username}\n"
             if request.first_name:
@@ -256,7 +256,7 @@ async def show_pending_requests(update: Update, context: ContextTypes.DEFAULT_TY
         await query.edit_message_text(
             message,
             reply_markup=reply_markup,
-            parse_mode='MarkdownV2'
+            parse_mode='HTML'
         )
 
 async def request_access(update: Update, context: ContextTypes.DEFAULT_TYPE):
