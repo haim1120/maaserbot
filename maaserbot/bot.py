@@ -230,30 +230,34 @@ async def show_pending_requests(update: Update, context: ContextTypes.DEFAULT_TY
             )
             return CHOOSING
         
-        message = "📝 בקשות ממתינות לאישור:\n\n"
+        message = "📝 *בקשות ממתינות לאישור:*\n\n"
         
         for request in pending_requests:
-            message += f"*משתמש חדש*\n"
-            message += f"ID: `{request.telegram_id}`\n"
+            message += "👤 *משתמש חדש*\n"
+            message += f"• מזהה: `{request.telegram_id}`\n"
             if request.username:
-                message += f"שם משתמש: @{request.username}\n"
+                message += f"• שם משתמש: @{request.username}\n"
             if request.first_name:
-                message += f"שם פרטי: {request.first_name}\n"
+                message += f"• שם פרטי: {request.first_name}\n"
             if request.last_name:
-                message += f"שם משפחה: {request.last_name}\n"
-            message += f"תאריך בקשה: {request.created_at.strftime('%d/%m/%Y')}\n"
+                message += f"• שם משפחה: {request.last_name}\n"
+            message += f"• תאריך בקשה: {request.created_at.strftime('%d/%m/%Y')}\n"
             message += "──────────────────\n"
         
-        keyboard = [[InlineKeyboardButton("חזרה לתפריט הראשי", callback_data='main_menu')]]
+        keyboard = [
+            [
+                InlineKeyboardButton("✅ אשר", callback_data=f'approve_{request.id}'),
+                InlineKeyboardButton("❌ דחה", callback_data=f'reject_{request.id}')
+            ],
+            [InlineKeyboardButton("חזרה לתפריט הראשי", callback_data='main_menu')]
+        ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         await query.edit_message_text(
             message,
             reply_markup=reply_markup,
-            parse_mode='Markdown'
+            parse_mode='MarkdownV2'
         )
-        
-    return CHOOSING
 
 async def request_access(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle access request from user."""
