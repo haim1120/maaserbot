@@ -9,6 +9,7 @@ from maaserbot.models.models import CalculationType, Currency, Income, Payment, 
 from telegram.error import Conflict
 import asyncio
 import aiohttp
+from datetime import datetime, timezone, timedelta
 
 # Load environment variables
 load_dotenv()
@@ -1442,19 +1443,6 @@ async def handle_edit_income_description(update: Update, context: ContextTypes.D
         
     return CHOOSING
 
-async def keep_alive():
-    """Keep the server alive by sending periodic requests."""
-    while True:
-        try:
-            webhook_url = os.getenv("WEBHOOK_URL")
-            if webhook_url:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(webhook_url) as response:
-                        logger.info("Keep-alive ping sent")
-        except Exception as e:
-            logger.error(f"Error in keep-alive ping: {str(e)}")
-        await asyncio.sleep(14 * 60)  # Sleep for 14 minutes
-
 def main():
     """Start the bot."""
     # Create the Application
@@ -1555,10 +1543,7 @@ def main():
     logger.info(f"Starting webhook on port {port} with path {webhook_path}")
     
     # Delete existing webhook before setting a new one
-    asyncio.run(application.bot.delete_webhook())
-    
-    # Start the keep-alive task
-    application.job_queue.run_repeating(lambda ctx: keep_alive(), interval=14*60, first=0)
+    application.bot.delete_webhook()
     
     # Start the webhook
     application.run_webhook(
