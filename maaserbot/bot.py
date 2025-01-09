@@ -7,6 +7,8 @@ from maaserbot.models import SessionLocal
 from maaserbot.utils.db import get_or_create_user, add_income, add_payment, get_user_balance, get_user_history, update_user_settings, delete_all_user_data, delete_income, edit_income, delete_payment, edit_payment, approve_user, remove_user_approval, get_all_users, get_pending_access_requests, create_access_request, approve_access_request, reject_access_request
 from maaserbot.models.models import CalculationType, Currency, Income, Payment, AccessRequest
 from telegram.error import Conflict
+import asyncio
+import aiohttp
 
 # Load environment variables
 load_dotenv()
@@ -1440,6 +1442,19 @@ async def handle_edit_income_description(update: Update, context: ContextTypes.D
         
     return CHOOSING
 
+async def keep_alive():
+    """Keep the server alive by sending periodic requests."""
+    while True:
+        try:
+            webhook_url = os.getenv("WEBHOOK_URL")
+            if webhook_url:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(webhook_url) as response:
+                        logger.info("Keep-alive ping sent")
+        except Exception as e:
+            logger.error(f"Error in keep-alive ping: {str(e)}")
+        await asyncio.sleep(14 * 60)  # Sleep for 14 minutes
+
 def main():
     """Start the bot."""
     # Create the Application
@@ -1525,7 +1540,7 @@ def main():
     application.add_handler(conv_handler)
     
     # Get port and webhook settings from environment variables
-    port = int(os.getenv("PORT", "10000"))  # Changed default port to 10000
+    port = int(os.getenv("PORT", "10000"))
     webhook_url = os.getenv("WEBHOOK_URL")
     webhook_secret = os.getenv("WEBHOOK_SECRET", "your-secret-token")
     
@@ -1540,7 +1555,10 @@ def main():
     logger.info(f"Starting webhook on port {port} with path {webhook_path}")
     
     # Delete existing webhook before setting a new one
-    application.bot.delete_webhook()
+    asyncio.run(application.bot.delete_webhook())
+    
+    # Start the keep-alive task
+    application.job_queue.run_repeating(lambda ctx: keep_alive(), interval=14*60, first=0)
     
     # Start the webhook
     application.run_webhook(
