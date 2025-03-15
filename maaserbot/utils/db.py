@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from maaserbot.models.models import User, Income, Payment, CalculationType, Currency, AccessRequest
+from maaserbot.models.models import User, Income, Payment, CalculationType, AccessRequest
 from datetime import datetime
 import os
 from dotenv import load_dotenv
@@ -24,7 +24,6 @@ def get_or_create_user(db: Session, telegram_id: int, username: str = None, firs
             first_name=first_name,
             last_name=last_name,
             default_calc_type=CalculationType.MAASER.value,
-            currency=Currency.ILS.value,
             is_approved=telegram_id == ADMIN_ID,
             is_admin=telegram_id == ADMIN_ID
         )
@@ -206,21 +205,18 @@ def get_user_history(db: Session, user_id: int, page: int = 1, items_per_page: i
     return {
         "incomes": incomes,
         "payments": payments,
-        "currency": user.currency,
         "current_page": page,
         "total_pages": total_pages,
         "total_incomes": total_incomes,
         "total_payments": total_payments
     } 
 
-def update_user_settings(db: Session, user_id: int, default_calc_type: CalculationType = None, currency: Currency = None) -> User:
+def update_user_settings(db: Session, user_id: int, default_calc_type: CalculationType = None) -> User:
     """Update user settings."""
     user = db.query(User).filter(User.id == user_id).first()
     if user:
         if default_calc_type is not None:
             user.default_calc_type = default_calc_type.value
-        if currency is not None:
-            user.currency = currency.value
         db.commit()
     return user
 
@@ -232,7 +228,6 @@ def delete_all_user_data(db: Session, user_id: int) -> bool:
         user = db.query(User).filter(User.id == user_id).first()
         if user:
             user.default_calc_type = CalculationType.MAASER.value
-            user.currency = Currency.ILS.value
         db.commit()
         logger.warning(f"Deleted all data for user {user_id}")
         return True

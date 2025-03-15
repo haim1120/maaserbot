@@ -8,29 +8,6 @@ class CalculationType(str, enum.Enum):
     MAASER = "מעשר"
     CHOMESH = "חומש"
 
-class Currency(str, enum.Enum):
-    ILS = "ILS"
-    USD = "USD"
-    EUR = "EUR"
-    
-    @property
-    def symbol(self) -> str:
-        symbols = {
-            "ILS": "₪",
-            "USD": "$",
-            "EUR": "€"
-        }
-        return symbols[self.value]
-    
-    @property
-    def name_hebrew(self) -> str:
-        names = {
-            "ILS": "שקל",
-            "USD": "דולר",
-            "EUR": "יורו"
-        }
-        return names[self.value]
-
 class AccessRequest(Base):
     """Model for access requests."""
     __tablename__ = 'access_requests'
@@ -55,7 +32,6 @@ class User(Base):
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
     default_calc_type = Column(String, default=CalculationType.MAASER.value)
-    currency = Column(String, default=Currency.ILS.value)
     is_approved = Column(Boolean, default=False)
     is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
